@@ -1,0 +1,70 @@
+'use client';
+import React from 'react'
+import {
+    NavigationMenu,
+    NavigationMenuContent,
+    NavigationMenuIndicator,
+    NavigationMenuItem,
+    NavigationMenuLink,
+    NavigationMenuList,
+    NavigationMenuTrigger,
+    NavigationMenuViewport,
+    navigationMenuTriggerStyle,
+} from "@/components/ui/navigation-menu"
+
+import Link from 'next/link';
+import { ModeToggle } from './ModeToggle';
+
+
+
+function Navigation() {
+    return (
+        <div className='flex grow justify-between flex-wrap items-center backdrop-blur-sm bg-foreground/10 sticky top-0'>
+            <div className='flex grow justify-start flex-wrap items-center'>
+                <h1 className='text-2xl font-bold m-3'>qMovie</h1>
+                <NavigationMenu>
+                    <NavigationMenuList>
+                        <NavigationMenuItem>
+                            <Link href="/" legacyBehavior passHref>
+                                <NavigationMenuLink className={navigationMenuTriggerStyle()}>
+                                    Home
+                                </NavigationMenuLink>
+                            </Link>
+                        </NavigationMenuItem>
+                        <NavigationMenuItem>
+                            <Link href="/my-saved" legacyBehavior passHref>
+                                <NavigationMenuLink className={navigationMenuTriggerStyle()}>
+                                    My saved
+                                </NavigationMenuLink>
+                            </Link>
+                        </NavigationMenuItem>
+                    </NavigationMenuList>
+                </NavigationMenu>
+            </div>
+            <NavigationMenu>
+                <NavigationMenuList>
+                    <NavigationMenuItem>
+                        <Link href="/signup" legacyBehavior passHref>
+                            <NavigationMenuLink className={navigationMenuTriggerStyle()}>
+                                Sign Up
+                            </NavigationMenuLink>
+                        </Link>
+                    </NavigationMenuItem>
+                    <NavigationMenuItem>
+                        <Link href="/signin" legacyBehavior passHref>
+                            <NavigationMenuLink className={navigationMenuTriggerStyle() + "text-2xl"}>
+                                Sign In
+                            </NavigationMenuLink>
+                        </Link>
+                    </NavigationMenuItem>
+                </NavigationMenuList>
+            </NavigationMenu>
+            <div>
+                <ModeToggle />
+            </div>
+
+        </div>
+    )
+}
+
+export default Navigation

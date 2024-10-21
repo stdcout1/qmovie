@@ -11,7 +11,7 @@ export const metadata: Metadata = {
     description: "movie streaming",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
     children,
 }: Readonly<{
     children: React.ReactNode;
