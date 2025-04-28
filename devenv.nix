@@ -31,6 +31,7 @@
     enable = true;
     initialDatabases = [{ name = "db"; }];
     listen_addresses = "127.0.0.1";
+    package = pkgs.postgresql_15;
   };
 
   # https://devenv.sh/languages/
@@ -40,7 +41,8 @@
   # pre-commit.hooks.shellcheck.enable = true;
 
   # https://devenv.sh/processes/
-  processes.ping.exec = "npm run dev";
+  processes.nextjs.exec = "npm run dev";
+  processes.jackett.exec = "${pkgs.jackett}/bin/jackett";
 
   # See full reference at https://devenv.sh/reference/options/
 }
