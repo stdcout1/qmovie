@@ -3,9 +3,7 @@ import { buttonVariants } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Play } from 'lucide-react';
 import React, { useState } from 'react';
-import { MediaPlayer, MediaProvider, MediaProviderAdapter, MediaProviderSetupEvent, PlayerSrc, isHLSProvider, useMediaRemote } from '@vidstack/react';
-import { PlyrLayout, plyrLayoutIcons } from '@vidstack/react/player/layouts/plyr';
-import RealDebridRawVideo from './CustomMedia';
+import CustomPlayer from './CustomMedia';
 
 export function MoviePlayer(props: { title: string, year: number }) {
     //stack:
@@ -25,8 +23,8 @@ export function MoviePlayer(props: { title: string, year: number }) {
                 <Play className='mr-3' /> Play
             </DialogTrigger>
             <DialogContent>
-                <RealDebridRawVideo/>
-                <DialogTitle> Media: </DialogTitle>
+                <DialogTitle> {props.title} </DialogTitle>
+                <CustomPlayer link="https://29.stream.real-debrid.com/t/FY3YBSGVSV2PU87/eng1/none/aac/full.mpd" />
                 <DialogDescription>
                 </DialogDescription>
             </DialogContent>
