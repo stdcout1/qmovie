@@ -4,7 +4,7 @@ import { useRef, useEffect, useState } from "react"
 import dashjs from "dashjs"
 import { Slider } from "@/components/ui/slider"
 import { Button } from "@/components/ui/button"
-import { Play, Pause, Maximize, Minimize, Volume2, VolumeX, SkipBack, SkipForward, Settings } from "lucide-react"
+import { Play, Pause, Maximize, Minimize, Volume2, VolumeX, SkipBack, SkipForward, Settings, Check, ChevronLeft, X } from 'lucide-react'
 
 export default function CustomPlayer(props: { link: string; duration: number }) {
     const containerRef = useRef<HTMLDivElement | null>(null)
@@ -21,6 +21,14 @@ export default function CustomPlayer(props: { link: string; duration: number }) 
     const [showControls, setShowControls] = useState(true)
     const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null)
     const base_link = props.link
+
+    // Settings menu state
+    const [showSettings, setShowSettings] = useState(false)
+    const [settingsView, setSettingsView] = useState<'main' | 'quality' | 'subtitles'>('main')
+    const [qualities, setQualities] = useState<{ bitrate: number; height: number; index: number }[]>([])
+    const [currentQuality, setCurrentQuality] = useState<number | "auto">("auto")
+    const [subtitles, setSubtitles] = useState<{ index: number; lang: string; label: string }[]>([])
+    const [currentSubtitle, setCurrentSubtitle] = useState<number | "off">("off")
 
     const createDashPlayer = (mpdUrl: string) => {
         const video = videoRef.current
@@ -50,10 +58,20 @@ export default function CustomPlayer(props: { link: string; duration: number }) 
 
         createDashPlayer(base_link + `?t=0`)
 
+        // Get available qualities and subtitles once the player is initialized
+        const handleStreamInitialized = () => {
+            getAvailableQualities()
+            getAvailableSubtitles()
+        }
+
+        if (dashPlayerRef.current) {
+            dashPlayerRef.current.on(dashjs.MediaPlayer.events.STREAM_INITIALIZED, handleStreamInitialized)
+        }
+
         const handleSeeking = () => {
             const seekTo = video.currentTime + seekTs.current
 
-            const foundInBuffer = false
+            let foundInBuffer = false
             for (let i = 0; i < video.buffered.length; i++) {
                 const start = video.buffered.start(i) + seekTs.current
                 const end = video.buffered.end(i) + seekTs.current
@@ -102,6 +120,8 @@ export default function CustomPlayer(props: { link: string; duration: number }) 
                 toggleMute()
             } else if (e.key === "f") {
                 toggleFullscreen()
+            } else if (e.key === "Escape" && showSettings) {
+                closeSettings()
             }
         }
 
@@ -119,7 +139,11 @@ export default function CustomPlayer(props: { link: string; duration: number }) 
             video.removeEventListener("pause", handlePause)
             document.removeEventListener("fullscreenchange", handleFullscreenChange)
             window.removeEventListener("keydown", handleKeyDown)
-            dashPlayerRef.current?.reset()
+
+            if (dashPlayerRef.current) {
+                dashPlayerRef.current.off(dashjs.MediaPlayer.events.STREAM_INITIALIZED, handleStreamInitialized)
+                dashPlayerRef.current.reset()
+            }
         }
     }, [])
 
@@ -204,15 +228,93 @@ export default function CustomPlayer(props: { link: string; duration: number }) 
         }
 
         controlsTimeoutRef.current = setTimeout(() => {
-            if (isPlaying) {
+            if (isPlaying && !showSettings) {
                 setShowControls(false)
             }
         }, 3000)
     }
 
     const handleMouseLeave = () => {
-        if (isPlaying) {
+        if (isPlaying && !showSettings) {
             setShowControls(false)
+        }
+    }
+
+    const toggleSettings = () => {
+        setShowSettings(!showSettings)
+        setSettingsView('main')
+    }
+
+    const closeSettings = () => {
+        setShowSettings(false)
+    }
+
+    const getAvailableQualities = () => {
+        if (!dashPlayerRef.current) return
+
+        try {
+            const bitrateInfo = dashPlayerRef.current.getBitrateInfoListFor("video")
+            if (bitrateInfo && bitrateInfo.length > 0) {
+                const qualityList = bitrateInfo.map((info, index) => ({
+                    bitrate: info.bitrate,
+                    height: info.height,
+                    index: index,
+                }))
+                setQualities(qualityList)
+            }
+        } catch (e) {
+            console.error("Error getting quality info:", e)
+        }
+    }
+
+    const getAvailableSubtitles = () => {
+        if (!dashPlayerRef.current) return
+
+        try {
+            const tracks = dashPlayerRef.current.getTracksFor("text")
+            if (tracks && tracks.length > 0) {
+                const subtitleList = tracks.map((track, index) => ({
+                    index: index,
+                    lang: track.lang || "unknown",
+                    label: track.labels && track.labels.length > 0 ? track.labels[0].text : track.lang || "Unknown",
+                }))
+                setSubtitles(subtitleList)
+            }
+        } catch (e) {
+            console.error("Error getting subtitle info:", e)
+        }
+    }
+
+    const setQuality = (index: number | "auto") => {
+        if (!dashPlayerRef.current) return
+
+        try {
+            if (index === "auto") {
+                dashPlayerRef.current.setAutoSwitchQualityFor("video", true)
+            } else {
+                dashPlayerRef.current.setAutoSwitchQualityFor("video", false)
+                dashPlayerRef.current.setQualityFor("video", index)
+            }
+
+            setCurrentQuality(index)
+        } catch (e) {
+            console.error("Error setting quality:", e)
+        }
+    }
+
+    const setSubtitle = (index: number | "off") => {
+        if (!dashPlayerRef.current) return
+
+        try {
+            if (index === "off") {
+                dashPlayerRef.current.setTextTrack(-1)
+            } else {
+                dashPlayerRef.current.setTextTrack(index)
+            }
+
+            setCurrentSubtitle(index)
+        } catch (e) {
+            console.error("Error setting subtitle:", e)
         }
     }
 
@@ -232,6 +334,15 @@ export default function CustomPlayer(props: { link: string; duration: number }) 
                 onClick={togglePlayPause}
             />
 
+            {/* Subtitles */}
+            {currentSubtitle !== "off" && (
+                <div className="absolute bottom-20 left-0 right-0 flex justify-center">
+                    <div className="bg-black/70 px-4 py-1 rounded text-white text-center max-w-[80%]">
+                        <track kind="subtitles" src="" srcLang="en" label="English" />
+                    </div>
+                </div>
+            )}
+
             {/* Play/Pause Overlay Button (center of video) */}
             {!isPlaying && (
                 <div className="absolute inset-0 flex items-center justify-center">
@@ -243,6 +354,103 @@ export default function CustomPlayer(props: { link: string; duration: number }) 
                     >
                         <Play className="w-10 h-10 fill-white" />
                     </Button>
+                </div>
+            )}
+
+            {/* Settings Menu */}
+            {showSettings && (
+                <div className="absolute right-4 bottom-16 w-56 bg-black/90 border border-gray-700 rounded-md text-white shadow-lg z-10">
+                    <div className="flex items-center justify-between p-2 border-b border-gray-700">
+                        {settingsView !== 'main' && (
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 mr-1 text-white hover:bg-white/10 p-1.5"
+                                onClick={() => setSettingsView('main')}
+                            >
+                                <ChevronLeft className="h-5 w-5" />
+                            </Button>
+                        )}
+                        <span className="font-medium">
+                            {settingsView === 'main' ? 'Settings' :
+                                settingsView === 'quality' ? 'Quality' : 'Subtitles'}
+                        </span>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-white hover:bg-white/10 p-1.5"
+                            onClick={closeSettings}
+                        >
+                            <X className="h-5 w-5" />
+                        </Button>
+                    </div>
+
+                    {settingsView === 'main' && (
+                        <div className="p-1">
+                            <button
+                                className="w-full flex justify-between items-center p-2 hover:bg-white/10 rounded"
+                                onClick={() => setSettingsView('quality')}
+                            >
+                                <span>Quality</span>
+                                <span className="text-sm text-gray-400">
+                                    {currentQuality === "auto" ? "Auto" : qualities.find(q => q.index === currentQuality)?.height + "p"}
+                                </span>
+                            </button>
+                            <button
+                                className="w-full flex justify-between items-center p-2 hover:bg-white/10 rounded"
+                                onClick={() => setSettingsView('subtitles')}
+                            >
+                                <span>Subtitles</span>
+                                <span className="text-sm text-gray-400">
+                                    {currentSubtitle === "off" ? "Off" : subtitles.find(s => s.index === currentSubtitle)?.label}
+                                </span>
+                            </button>
+                        </div>
+                    )}
+
+                    {settingsView === 'quality' && (
+                        <div className="p-1 max-h-60 overflow-y-auto">
+                            <button
+                                className="w-full flex justify-between items-center p-2 hover:bg-white/10 rounded"
+                                onClick={() => setQuality("auto")}
+                            >
+                                <span>Auto</span>
+                                {currentQuality === "auto" && <Check className="h-4 w-4" />}
+                            </button>
+                            {qualities.map(quality => (
+                                <button
+                                    key={quality.index}
+                                    className="w-full flex justify-between items-center p-2 hover:bg-white/10 rounded"
+                                    onClick={() => setQuality(quality.index)}
+                                >
+                                    <span>{quality.height}p</span>
+                                    {currentQuality === quality.index && <Check className="h-4 w-4" />}
+                                </button>
+                            ))}
+                        </div>
+                    )}
+
+                    {settingsView === 'subtitles' && (
+                        <div className="p-1 max-h-60 overflow-y-auto">
+                            <button
+                                className="w-full flex justify-between items-center p-2 hover:bg-white/10 rounded"
+                                onClick={() => setSubtitle("off")}
+                            >
+                                <span>Off</span>
+                                {currentSubtitle === "off" && <Check className="h-4 w-4" />}
+                            </button>
+                            {subtitles.map(subtitle => (
+                                <button
+                                    key={subtitle.index}
+                                    className="w-full flex justify-between items-center p-2 hover:bg-white/10 rounded"
+                                    onClick={() => setSubtitle(subtitle.index)}
+                                >
+                                    <span>{subtitle.label}</span>
+                                    {currentSubtitle === subtitle.index && <Check className="h-4 w-4" />}
+                                </button>
+                            ))}
+                        </div>
+                    )}
                 </div>
             )}
 
@@ -308,7 +516,12 @@ export default function CustomPlayer(props: { link: string; duration: number }) 
 
                     {/* Settings & Fullscreen */}
                     <div className="flex items-center gap-1">
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-white hover:bg-white/10">
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className={`h-8 w-8 text-white ${showSettings ? 'bg-white/20' : 'hover:bg-white/10'}`}
+                            onClick={toggleSettings}
+                        >
                             <Settings className="h-5 w-5" />
                         </Button>
 
