@@ -33,6 +33,10 @@ export async function MoviePlayer(props: { title: string, imdb_id: string, rdapi
     const xml = await (await fetch(jackettUrl + `?apikey=${jackettApiKey}&t=movie&imdbid=${props.imdb_id}`, options)).text()
     const json = parser.parse(xml);
     const items = json?.rss?.channel?.item ?? [];
+    if (items.length == 0 ) {
+        console.log("No items")
+        return
+    }
     function getTorznabAttr(item, key) {
         const attrs = item['torznab:attr'];
         const list = Array.isArray(attrs) ? attrs : [attrs];
@@ -100,12 +104,12 @@ export async function MoviePlayer(props: { title: string, imdb_id: string, rdapi
 
     // now we get the streaming link 
 
-    const { dash } = await (await fetch(`https://api.real-debrid.com/rest/1.0/streaming/transcode/${output.id.slice(0, -1)}`, getOptionsRD)).json()
+    const { dash } = await (await fetch(`https://api.real-debrid.com/rest/1.0/streaming/transcode/${output.id.slice(0, -2)}`, getOptionsRD)).json()
     console.log(dash)
 
     //duration
-    
-    const { duration } = await (await fetch(`https://api.real-debrid.com/rest/1.0/streaming/mediaInfos/${output.id.slice(0, -1)}`, getOptionsRD)).json()
+
+    const { duration } = await (await fetch(`https://api.real-debrid.com/rest/1.0/streaming/mediaInfos/${output.id.slice(0, -2)}`, getOptionsRD)).json()
     console.log(duration)
 
 
@@ -121,7 +125,7 @@ export async function MoviePlayer(props: { title: string, imdb_id: string, rdapi
             </DialogTrigger>
             <DialogContent>
                 <DialogTitle> {props.title} </DialogTitle>
-                <CustomPlayer link={dash.full} duration = {duration} />
+                <CustomPlayer link={dash.full} duration={duration} />
                 <DialogDescription>
                 </DialogDescription>
             </DialogContent>
