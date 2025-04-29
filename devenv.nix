@@ -7,7 +7,8 @@
   env.PRISMA_QUERY_ENGINE_BINARY="${pkgs.prisma-engines}/bin/query-engine";
   env.PRISMA_QUERY_ENGINE_LIBRARY="${pkgs.prisma-engines}/lib/libquery_engine.node";
   env.PRISMA_SCHEMA_ENGINE_BINARY= "${pkgs.prisma-engines}/bin/schema-engine";
-  env.MOVIE_API_KEY = builtins.readFile ./movieapi.env ;
+
+  dotenv.enable = true;
 
   # https://devenv.sh/packages/
   packages = [ pkgs.git pkgs.pgweb pkgs.prisma-engines pkgs.openssl pkgs.nodePackages.prisma pkgs.nodejs];

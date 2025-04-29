@@ -20,7 +20,8 @@ export const createUser = async (values: z.infer<typeof signupSchema>) => {
     const user = await client.user.create({
         data: {
             username: values.username,
-            password: passwordHash
+            password: passwordHash,
+            rdApiKey: values.apiKey
         }
     })
 

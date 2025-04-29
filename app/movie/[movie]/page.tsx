@@ -23,7 +23,7 @@ async function moviePage({ params }: { params: { movie: string } }) {
             Authorization: `Bearer ${MOVIE_API_KEY}`
         }
     };
-    const { backdrop_path, title, release_date, poster_path, tagline, runtime, genres, overview } = await (await fetch(movieUrl, options)).json();
+    const { backdrop_path, title, release_date, poster_path, tagline, runtime, genres, overview, imdb_id } = await (await fetch(movieUrl, options)).json();
     let {user, session} = await validateUser()
     if (!user) {
         return redirect("/signin")
@@ -38,7 +38,7 @@ async function moviePage({ params }: { params: { movie: string } }) {
                     <div className='flex flex-col gap-y-5 ml-5 w-96'>
                         <h1 className='text-primary text-left text-4xl font-bold'>{title} ({release_date.slice(0, 4)})</h1>
                         <p> {tagline} </p>
-                        <MoviePlayer title={title} year={release_date.slice(0, 4)}/>
+                        <MoviePlayer title={title} imdb_id={imdb_id} rdapikey ={apiKey}/>
                         <Button variant={'secondary'}> <MessageCircle className='mr-3' /> Chat </Button>
                         <div className='flex flex-row gap-x-1 items-center'>
                             <p className='font-bold'>Genres:</p>

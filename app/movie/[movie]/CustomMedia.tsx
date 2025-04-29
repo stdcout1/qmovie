@@ -1,7 +1,8 @@
+'use client'
 import { useRef, useEffect, useState } from 'react';
 import dashjs from 'dashjs';
 
-export default function CustomPlayer(props: {link: string}) {
+export default function CustomPlayer(props: {link: string, duration: number}) {
     const containerRef = useRef<HTMLDivElement | null>(null);
     const videoRef = useRef<HTMLVideoElement | null>(null);
     const dashPlayerRef = useRef<dashjs.MediaPlayerClass | null>(null);
@@ -9,9 +10,9 @@ export default function CustomPlayer(props: {link: string}) {
     const curTs = useRef(0);
     const [realTime, setRealTime] = useState(0);
     const [isPlaying, setIsPlaying] = useState(false);
-    const [movieDuration, setMovieDuration] = useState(6018); // example
+    const [movieDuration, setMovieDuration] = useState(props.duration); // example
     const [isFullscreen, setIsFullscreen] = useState(false);
-    const base_link = "https://29.stream.real-debrid.com/t/FY3YBSGVSV2PU87/eng1/none/aac/full.mpd";
+    const base_link = props.link;
 
     const createDashPlayer = (mpdUrl: string) => {
         const video = videoRef.current;
