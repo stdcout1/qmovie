@@ -1,14 +1,12 @@
-import { MovieCarousel } from '@/app/PopularCarousel';
+import { MovieCarousel } from '@/app/MovieCarousel';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { MessageCircle } from 'lucide-react';
 import Image from 'next/image'
-import React, { useEffect } from 'react'
+import React, { } from 'react'
 import '@vidstack/react/player/styles/base.css';
 import '@vidstack/react/player/styles/plyr/theme.css';
-import { Captions, Track } from '@vidstack/react';
 import { MoviePlayer } from './MoviePlayer';
-import { client } from '@/auth';
 import { validateUser } from '@/components/server/validateUser';
 import { redirect } from 'next/navigation';
 
@@ -24,7 +22,8 @@ async function moviePage({ params }: { params: { movie: string } }) {
         }
     };
     const { backdrop_path, title, release_date, poster_path, tagline, runtime, genres, overview, imdb_id } = await (await fetch(movieUrl, options)).json();
-    let {user, session} = await validateUser()
+    const recommendedMovies = await (await fetch(`https://api.themoviedb.org/3/movie/${params.movie}/recommendations?language=en-US&page=1`, options)).json();
+    let { user, session } = await validateUser()
     if (!user) {
         return redirect("/signin")
     }
@@ -38,7 +37,7 @@ async function moviePage({ params }: { params: { movie: string } }) {
                     <div className='flex flex-col gap-y-5 ml-5 w-96'>
                         <h1 className='text-primary text-left text-4xl font-bold'>{title} ({release_date.slice(0, 4)})</h1>
                         <p> {tagline} </p>
-                        <MoviePlayer title={title} imdb_id={imdb_id} rdapikey ={apiKey}/>
+                        <MoviePlayer title={title} imdb_id={imdb_id} rdapikey={apiKey} />
                         <Button variant={'secondary'}> <MessageCircle className='mr-3' /> Chat </Button>
                         <div className='flex flex-row gap-x-1 items-center'>
                             <p className='font-bold'>Genres:</p>
@@ -48,14 +47,15 @@ async function moviePage({ params }: { params: { movie: string } }) {
                                 ))}
                             </div>
                         </div>
-                        <p> Runtime: {runtime} </p>
+                        <p className='font-bold'> Runtime: {runtime} </p>
                         <p> {overview} </p>
                     </div>
                     <Image className='mr-16' src={backdropUrl + poster_path} alt={title + " poster"} width={300} height={300 * 2 / 3} />
                 </div>
             </div >
-            <div className='relative translate-y-36 mt-5'>
-                <MovieCarousel title={"Recommended"} url={`https://api.themoviedb.org/3/movie/${params.movie}/recommendations?language=en-US&page=1`} link={"/recommendations"} />
+            {/* Recommended Movies */}
+            <div className="relative translate-y-36 mt-8 w-full overflow-hidden px-4 md:px-6 max-w-7xl mx-auto">
+                <MovieCarousel title={"Recommended"} results={recommendedMovies.results} link={"/recommendations"} />
             </div>
         </>
     )

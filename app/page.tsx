@@ -1,15 +1,41 @@
-import Image from "next/image";
+import { MovieCarousel } from "./MovieCarousel"
 
-import Link from "next/link";
-import { ArrowRightIcon } from "lucide-react";
-import { MovieCarousel } from "./PopularCarousel";
+export default async function Home() {
+    const MOVIE_API_KEY = process.env.MOVIE_API_KEY
+    const options = {
+        method: "GET",
+        headers: {
+            accept: "application/json",
+            Authorization: `Bearer ${MOVIE_API_KEY}`,
+        },
+    }
 
+    // Fetch popular movies
+    const popularMoviesUrl = "https://api.themoviedb.org/3/movie/popular"
+    const popularMoviesData = await fetch(popularMoviesUrl, options)
 
+    if (!popularMoviesData.ok) {
+        throw new Error(`Failed to fetch popular movies: ${popularMoviesData.status}`)
+    }
 
-export default function Home() {
+    const popularMovies = await popularMoviesData.json()
+
+    // Fetch trending movies
+    const trendingMoviesUrl = "https://api.themoviedb.org/3/trending/movie/day"
+    const trendingMoviesData = await fetch(trendingMoviesUrl, options)
+
+    if (!trendingMoviesData.ok) {
+        throw new Error(`Failed to fetch trending movies: ${trendingMoviesData.status}`)
+    }
+
+    const trendingMovies = await trendingMoviesData.json()
+
     return (
-        <main>
-            <MovieCarousel title={"Popular"} url={"https://api.themoviedb.org/3/movie/popular?language=en-US&page=1"} link={"popular"} />
+        <main className="container py-8 space-y-12">
+            <MovieCarousel title="Popular Movies" link="/movies/popular" results={popularMovies.results} />
+
+            <MovieCarousel title="Trending Today" link="/movies/trending" results={trendingMovies.results} />
         </main>
-    );
+    )
 }
+
