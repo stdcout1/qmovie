@@ -11,7 +11,7 @@
   dotenv.enable = true;
 
   # https://devenv.sh/packages/
-  packages = [ pkgs.git pkgs.pgweb pkgs.prisma-engines pkgs.openssl pkgs.nodePackages.prisma pkgs.nodejs];
+  packages = [ pkgs.git pkgs.pgweb pkgs.prisma-engines pkgs.openssl pkgs.nodePackages.prisma pkgs.nodejs pkgs.jackett];
 
   # https://devenv.sh/scripts/
   scripts.hello.exec = "echo hello from $GREET";
