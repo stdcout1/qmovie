@@ -3,12 +3,13 @@
 import { useEffect, useState } from "react"
 import { buttonVariants } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import CustomPlayer from "@/app/movie/[movie]/CustomMedia"
+import CustomPlayer from "@/components/CustomMedia"
 import type { Episode } from "./SeasonDrawer"
 import { Play } from "lucide-react"
 import videoAction from "./videoAction"
 import { unrestrictAction } from "./unrestrictAction"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { savePlaybackPosition, getPlaybackPosition } from "@/app/actions/video-playback"
 
 type FileEntry = {
     id: number
@@ -101,14 +102,29 @@ function getEpisodeLink(episodes: ParsedEpisode[], season: number, episode: numb
     return episodes.find((ep) => ep.season === season && ep.episode === episode)?.url ?? null
 }
 
-export function TvPlayer(props: { title: string | undefined; episode: Episode | null; rdapikey: string }) {
+export function TvPlayer(props: {
+    title: string | undefined
+    episode: Episode | null
+    rdapikey: string
+    userId: string
+}) {
     const [data, setData] = useState<Data | null>(null)
     const [loading, setLoading] = useState(true)
     const [videoLink, setVideoLink] = useState(null)
     const [duration, setDuration] = useState(null)
+    const [savedPosition, setSavedPosition] = useState(0)
+    const [isDialogOpen, setIsDialogOpen] = useState(false)
 
     // Check if the selected episode is from a specials/bonus season (season 0)
     const isSpecialSeason = props.episode?.season_number === 0
+
+    // Generate a unique video ID for the episode
+    const getVideoId = () => {
+        if (!props.episode) {
+            return "null"
+        }
+        return props.episode.id.toString()
+    }
 
     useEffect(() => {
         async function loadData() {
@@ -131,8 +147,28 @@ export function TvPlayer(props: { title: string | undefined; episode: Episode | 
                 const { dash, duration } = newdata
                 setVideoLink(dash.full)
                 setDuration(duration)
+
+                // Load saved position
+                const videoId = getVideoId()
+                if (videoId) {
+                    const result = await getPlaybackPosition(videoId, props.userId)
+                    if (result.success) {
+                        console.log("got a pos of", result.position)
+                        // If position is within 10 seconds of the end, start from beginning
+                        if (result.position >= duration - 10) {
+                            setSavedPosition(0)
+                        } else {
+                            setSavedPosition(result.position)
+                        }
+                    }
+                }
             }
         }
+    }
+
+    const handlePositionChange = async (position) => {
+        const videoId = getVideoId()
+        await savePlaybackPosition(videoId, position, props.userId)
     }
 
     // Render the play button with tooltip for special seasons
@@ -177,11 +213,21 @@ export function TvPlayer(props: { title: string | undefined; episode: Episode | 
     }
 
     return (
-        <Dialog>
+        <Dialog onOpenChange={setIsDialogOpen}>
             {renderPlayButton()}
             <DialogContent>
                 <DialogTitle> {props.title} </DialogTitle>
-                {videoLink && duration ? <CustomPlayer link={videoLink} duration={duration} /> : <p>Loading player...</p>}
+                {videoLink && duration ? (
+                    <CustomPlayer
+                        link={videoLink}
+                        duration={duration}
+                        videoId={getVideoId()}
+                        initialPosition={savedPosition}
+                        onPositionChange={handlePositionChange}
+                    />
+                ) : (
+                    <p>Loading player...</p>
+                )}
                 <DialogDescription></DialogDescription>
             </DialogContent>
         </Dialog>

@@ -19,6 +19,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Card, CardContent } from "@/components/ui/card"
 import getSeasonDetails from "./seasonAction"
 import { TvPlayer } from "./TvPlayer"
+import { User } from "lucia"
 
 export interface Season {
     id: number
@@ -31,7 +32,7 @@ export interface Season {
 }
 
 export interface Episode {
-    id: number
+    id: string
     name: string
     episode_number: number
     season_number: number
@@ -45,11 +46,10 @@ interface SeasonDrawerProps {
     showId: string
     showTitle: string
     seasons: Season[]
-    imdbId: string
-    apiKey: string
+    user: User
 }
 
-export function SeasonDrawer({ showId, showTitle, seasons, imdbId, apiKey }: SeasonDrawerProps) {
+export function SeasonDrawer({ showId, showTitle, seasons, user }: SeasonDrawerProps) {
     const [open, setOpen] = useState(false)
     const [selectedSeason, setSelectedSeason] = useState<Season | null>(null)
     const [episodes, setEpisodes] = useState<Episode[]>([])
@@ -253,7 +253,7 @@ export function SeasonDrawer({ showId, showTitle, seasons, imdbId, apiKey }: Sea
                 </div>
 
                 <DrawerFooter className="pt-2">
-                    <TvPlayer title={showTitle} episode={selectedEpisode} rdapikey={apiKey} />
+                    <TvPlayer userId = {user.id} title={showTitle} episode={selectedEpisode} rdapikey={user.apiKey} />
 
                     <DrawerClose asChild>
                         <Button variant="outline">Close</Button>
