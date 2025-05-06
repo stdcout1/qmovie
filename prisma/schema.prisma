@@ -19,6 +19,7 @@ model User {
   password      String
   rdApiKey      String
   sessions      Session[]
+  playbackPositions PlaybackPosition[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -31,3 +32,21 @@ model Session {
 
   user      User     @relation(references: [id], fields: [userId], onDelete: Cascade)
 }
+
+// User playback positions
+model PlaybackPosition {
+  id        String   @id @default(cuid())
+  userId    String
+  videoId   String
+  position  Float    // Position in seconds
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relation to User model
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, videoId])
+  @@index([userId])
+  @@index([videoId])
+}
+

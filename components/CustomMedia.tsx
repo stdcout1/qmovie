@@ -6,7 +6,13 @@ import { Slider } from "@/components/ui/slider"
 import { Button } from "@/components/ui/button"
 import { Play, Pause, Maximize, Minimize, Volume2, VolumeX, SkipBack, SkipForward, Settings, Check, ChevronLeft, X } from 'lucide-react'
 
-export default function CustomPlayer(props: { link: string; duration: number }) {
+export default function CustomPlayer(props: {
+    link: string
+    duration: number
+    videoId: string
+    initialPosition?: number
+    onPositionChange?: (position: number) => void
+}) {
     const containerRef = useRef<HTMLDivElement | null>(null)
     const videoRef = useRef<HTMLVideoElement | null>(null)
     const dashPlayerRef = useRef<dashjs.MediaPlayerClass | null>(null)
@@ -21,14 +27,40 @@ export default function CustomPlayer(props: { link: string; duration: number }) 
     const [showControls, setShowControls] = useState(true)
     const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null)
     const base_link = props.link
+    const positionReportIntervalRef = useRef<NodeJS.Timeout | null>(null)
+    const [isInitialLoad, setIsInitialLoad] = useState(true)
+    const [hasEverPlayed, setHasEverPlayed] = useState(false)
+    const shouldReportPositionRef = useRef(false)
+    const lastReportedPositionRef = useRef(0)
 
     // Settings menu state
     const [showSettings, setShowSettings] = useState(false)
-    const [settingsView, setSettingsView] = useState<'main' | 'quality' | 'subtitles'>('main')
+    const [settingsView, setSettingsView] = useState<"main" | "quality" | "subtitles">("main")
     const [qualities, setQualities] = useState<{ bitrate: number; height: number; index: number }[]>([])
     const [currentQuality, setCurrentQuality] = useState<number | "auto">("auto")
     const [subtitles, setSubtitles] = useState<{ index: number; lang: string; label: string }[]>([])
     const [currentSubtitle, setCurrentSubtitle] = useState<number | "off">("off")
+
+    // Safe wrapper for position reporting with debouncing
+    const reportPosition = (position: number) => {
+        if (!shouldReportPositionRef.current || !hasEverPlayed || isInitialLoad || position <= 0) {
+            return
+        }
+
+        // Only report if position has changed by at least 2 seconds since last report
+        // or if it's been more than 5 seconds since the last report
+        const now = Date.now()
+        const timeSinceLastReport = now - (lastReportedPositionRef.current || 0)
+        const minReportInterval = 5000; // 5 seconds minimum between reports
+
+        if (timeSinceLastReport >= minReportInterval) {
+            if (props.onPositionChange) {
+                console.log("Reporting position:", position);
+                props.onPositionChange(position)
+                lastReportedPositionRef.current = now
+            }
+        }
+    }
 
     const createDashPlayer = (mpdUrl: string) => {
         const video = videoRef.current
@@ -52,11 +84,85 @@ export default function CustomPlayer(props: { link: string; duration: number }) 
         }
     }
 
+    // Initialize with initial position if provided
+    useEffect(() => {
+        if (props.initialPosition && props.initialPosition > 0) {
+            // If we have a saved position, set it
+            seekTs.current = props.initialPosition
+
+            // If the saved position is within 10 seconds of the end, start from beginning
+            if (props.initialPosition >= props.duration - 10) {
+                seekTs.current = 0
+            }
+        }
+        setIsInitialLoad(false)
+    }, [props.initialPosition, props.duration])
+
+    // Enable position reporting after the first play event
+    useEffect(() => {
+        if (isPlaying && !hasEverPlayed) {
+            setHasEverPlayed(true)
+            // Wait a bit before enabling position reporting to avoid any initial events
+            setTimeout(() => {
+                shouldReportPositionRef.current = true
+            }, 1000)
+        }
+    }, [isPlaying, hasEverPlayed])
+
+    useEffect(() => {
+        // Set up interval to report position every 5 seconds while playing
+        if (isPlaying && hasEverPlayed) {
+            // Clear any existing interval first
+            if (positionReportIntervalRef.current) {
+                clearInterval(positionReportIntervalRef.current)
+            }
+
+            positionReportIntervalRef.current = setInterval(() => {
+                if (shouldReportPositionRef.current) {
+                    reportPosition(realTime)
+                }
+            }, 5000)
+        }
+
+        return () => {
+            if (positionReportIntervalRef.current) {
+                clearInterval(positionReportIntervalRef.current)
+            }
+        }
+    }, [isPlaying, realTime, hasEverPlayed])
+
+    // Report position when component unmounts or user pauses
+    useEffect(() => {
+        // Only add the beforeunload listener if we're past initial load and have played
+        if (isInitialLoad || !hasEverPlayed) return
+
+        const handleBeforeUnload = () => {
+            reportPosition(realTime)
+        }
+
+        window.addEventListener("beforeunload", handleBeforeUnload)
+
+        return () => {
+            window.removeEventListener("beforeunload", handleBeforeUnload)
+            // Report position on unmount, but only if we have a valid position
+            reportPosition(realTime)
+        }
+    }, [realTime, isInitialLoad, hasEverPlayed])
+
+    // Report position when user pauses
+    useEffect(() => {
+        // Only report position when transitioning from playing to paused (not on initial mount)
+        if (!isPlaying && hasEverPlayed && !isInitialLoad) {
+            reportPosition(realTime)
+        }
+    }, [isPlaying, realTime, isInitialLoad, hasEverPlayed])
+
     useEffect(() => {
         const video = videoRef.current
         if (!video) return
 
-        createDashPlayer(base_link + `?t=0`)
+        // Initialize with the saved position if available
+        createDashPlayer(base_link + `?t=${Math.floor(seekTs.current)}`)
 
         // Get available qualities and subtitles once the player is initialized
         const handleStreamInitialized = () => {
@@ -71,7 +177,7 @@ export default function CustomPlayer(props: { link: string; duration: number }) 
         const handleSeeking = () => {
             const seekTo = video.currentTime + seekTs.current
 
-            let foundInBuffer = false
+            const foundInBuffer = false
             for (let i = 0; i < video.buffered.length; i++) {
                 const start = video.buffered.start(i) + seekTs.current
                 const end = video.buffered.end(i) + seekTs.current
@@ -98,7 +204,10 @@ export default function CustomPlayer(props: { link: string; duration: number }) 
             setRealTime(seekTs.current + video.currentTime)
         }
 
-        const handlePlay = () => setIsPlaying(true)
+        const handlePlay = () => {
+            setIsPlaying(true)
+        }
+
         const handlePause = () => setIsPlaying(false)
 
         const handleFullscreenChange = () => {
@@ -112,7 +221,7 @@ export default function CustomPlayer(props: { link: string; duration: number }) 
             if (e.key === "ArrowLeft") {
                 video.currentTime = Math.max(0, video.currentTime - 10)
             } else if (e.key === "ArrowRight") {
-                video.currentTime += 10
+                video.currentTime += 5
             } else if (e.key === " ") {
                 togglePlayPause()
                 e.preventDefault()
@@ -171,6 +280,9 @@ export default function CustomPlayer(props: { link: string; duration: number }) 
             video.currentTime = 0
             video.play()
         }
+
+        // Don't report position immediately after seeking
+        // The regular interval will handle it
     }
 
     const handleVolumeChange = (value: number[]) => {
@@ -242,7 +354,7 @@ export default function CustomPlayer(props: { link: string; duration: number }) 
 
     const toggleSettings = () => {
         setShowSettings(!showSettings)
-        setSettingsView('main')
+        setSettingsView("main")
     }
 
     const closeSettings = () => {
@@ -361,19 +473,18 @@ export default function CustomPlayer(props: { link: string; duration: number }) 
             {showSettings && (
                 <div className="absolute right-4 bottom-16 w-56 bg-black/90 border border-gray-700 rounded-md text-white shadow-lg z-10">
                     <div className="flex items-center justify-between p-2 border-b border-gray-700">
-                        {settingsView !== 'main' && (
+                        {settingsView !== "main" && (
                             <Button
                                 variant="ghost"
                                 size="icon"
                                 className="h-8 w-8 mr-1 text-white hover:bg-white/10 p-1.5"
-                                onClick={() => setSettingsView('main')}
+                                onClick={() => setSettingsView("main")}
                             >
                                 <ChevronLeft className="h-5 w-5" />
                             </Button>
                         )}
                         <span className="font-medium">
-                            {settingsView === 'main' ? 'Settings' :
-                                settingsView === 'quality' ? 'Quality' : 'Subtitles'}
+                            {settingsView === "main" ? "Settings" : settingsView === "quality" ? "Quality" : "Subtitles"}
                         </span>
                         <Button
                             variant="ghost"
@@ -385,30 +496,30 @@ export default function CustomPlayer(props: { link: string; duration: number }) 
                         </Button>
                     </div>
 
-                    {settingsView === 'main' && (
+                    {settingsView === "main" && (
                         <div className="p-1">
                             <button
                                 className="w-full flex justify-between items-center p-2 hover:bg-white/10 rounded"
-                                onClick={() => setSettingsView('quality')}
+                                onClick={() => setSettingsView("quality")}
                             >
                                 <span>Quality</span>
                                 <span className="text-sm text-gray-400">
-                                    {currentQuality === "auto" ? "Auto" : qualities.find(q => q.index === currentQuality)?.height + "p"}
+                                    {currentQuality === "auto" ? "Auto" : qualities.find((q) => q.index === currentQuality)?.height + "p"}
                                 </span>
                             </button>
                             <button
                                 className="w-full flex justify-between items-center p-2 hover:bg-white/10 rounded"
-                                onClick={() => setSettingsView('subtitles')}
+                                onClick={() => setSettingsView("subtitles")}
                             >
                                 <span>Subtitles</span>
                                 <span className="text-sm text-gray-400">
-                                    {currentSubtitle === "off" ? "Off" : subtitles.find(s => s.index === currentSubtitle)?.label}
+                                    {currentSubtitle === "off" ? "Off" : subtitles.find((s) => s.index === currentSubtitle)?.label}
                                 </span>
                             </button>
                         </div>
                     )}
 
-                    {settingsView === 'quality' && (
+                    {settingsView === "quality" && (
                         <div className="p-1 max-h-60 overflow-y-auto">
                             <button
                                 className="w-full flex justify-between items-center p-2 hover:bg-white/10 rounded"
@@ -417,7 +528,7 @@ export default function CustomPlayer(props: { link: string; duration: number }) 
                                 <span>Auto</span>
                                 {currentQuality === "auto" && <Check className="h-4 w-4" />}
                             </button>
-                            {qualities.map(quality => (
+                            {qualities.map((quality) => (
                                 <button
                                     key={quality.index}
                                     className="w-full flex justify-between items-center p-2 hover:bg-white/10 rounded"
@@ -430,7 +541,7 @@ export default function CustomPlayer(props: { link: string; duration: number }) 
                         </div>
                     )}
 
-                    {settingsView === 'subtitles' && (
+                    {settingsView === "subtitles" && (
                         <div className="p-1 max-h-60 overflow-y-auto">
                             <button
                                 className="w-full flex justify-between items-center p-2 hover:bg-white/10 rounded"
@@ -439,7 +550,7 @@ export default function CustomPlayer(props: { link: string; duration: number }) 
                                 <span>Off</span>
                                 {currentSubtitle === "off" && <Check className="h-4 w-4" />}
                             </button>
-                            {subtitles.map(subtitle => (
+                            {subtitles.map((subtitle) => (
                                 <button
                                     key={subtitle.index}
                                     className="w-full flex justify-between items-center p-2 hover:bg-white/10 rounded"
@@ -519,7 +630,7 @@ export default function CustomPlayer(props: { link: string; duration: number }) 
                         <Button
                             variant="ghost"
                             size="icon"
-                            className={`h-8 w-8 text-white ${showSettings ? 'bg-white/20' : 'hover:bg-white/10'}`}
+                            className={`h-8 w-8 text-white ${showSettings ? "bg-white/20" : "hover:bg-white/10"}`}
                             onClick={toggleSettings}
                         >
                             <Settings className="h-5 w-5" />

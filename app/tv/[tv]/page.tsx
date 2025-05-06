@@ -70,8 +70,7 @@ async function TVShowPage({ params }: { params: { tv: string } }) {
                             showId={params.tv}
                             showTitle={name}
                             seasons={seasons}
-                            imdbId={external_ids?.imdb_id}
-                            apiKey={apiKey}
+                            user={user}
                         />
 
                         <Button variant={"secondary"}>

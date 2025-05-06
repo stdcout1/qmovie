@@ -27,7 +27,6 @@ async function moviePage({ params }: { params: { movie: string } }) {
     if (!user) {
         return redirect("/signin")
     }
-    let apiKey = user.apiKey
 
     return (
         <>
@@ -37,7 +36,7 @@ async function moviePage({ params }: { params: { movie: string } }) {
                     <div className='flex flex-col gap-y-5 ml-5 w-96'>
                         <h1 className='text-primary text-left text-4xl font-bold'>{title} ({release_date.slice(0, 4)})</h1>
                         <p> {tagline} </p>
-                        <MoviePlayer title={title} imdb_id={imdb_id} rdapikey={apiKey} />
+                        <MoviePlayer title={title} imdb_id={imdb_id} user={user} />
                         <Button variant={'secondary'}> <MessageCircle className='mr-3' /> Chat </Button>
                         <div className='flex flex-row gap-x-1 items-center'>
                             <p className='font-bold'>Genres:</p>
