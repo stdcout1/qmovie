@@ -16,10 +16,17 @@
       forEachSystem = nixpkgs.lib.genAttrs (import systems);
     in
     {
-      packages = forEachSystem (system: {
-        devenv-up = self.devShells.${system}.default.config.procfileScript;
-        devenv-test = self.devShells.${system}.default.config.test;
-      });
+      packages = forEachSystem
+        (system:
+          let
+            pkgs = nixpkgs.legacyPackages.${system};
+          in
+          {
+            qmovie = import ./nextjs.nix { inherit pkgs ; };
+            devenv-up = self.devShells.${system}.default.config.procfileScript;
+            devenv-test = self.devShells.${system}.default.config.test;
+          }
+        );
 
       devShells = forEachSystem
         (system:
