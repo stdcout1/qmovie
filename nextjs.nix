@@ -31,6 +31,6 @@ pkgs.buildNpmPackage {
     echo "
         #!/usr/bin/env bash
         cd $lib
-        ${pkgs.nodePackages_latest.pnpm}/bin/pnpm run start -p 3001" > $exe
+        ${pkgs.nodePackages_latest.pnpm}/bin/pnpm run start " > $exe
   '';
 }
