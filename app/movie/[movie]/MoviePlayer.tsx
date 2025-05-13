@@ -109,16 +109,35 @@ export async function MoviePlayer(props: { title: string; imdb_id: string; user:
     console.log(output.id)
 
     // now we get the streaming link
-    const { dash } = await (
-        await fetch(`https://api.real-debrid.com/rest/1.0/streaming/transcode/${output.id.slice(0, -2)}`, getOptionsRD)
-    ).json()
-    console.log(dash)
+    // for some reason sometimes we need to slice the last two characters off its very weird lol
 
-    //duration
-    const { duration } = await (
-        await fetch(`https://api.real-debrid.com/rest/1.0/streaming/mediaInfos/${output.id.slice(0, -2)}`, getOptionsRD)
-    ).json()
-    console.log(duration)
+    const trySlices = [0, -1, -2];
+
+    let dash: string | null = null;
+    let duration: number | null = null;
+
+    for (const slice of trySlices) {
+        const id = slice === 0 ? output.id : output.id.slice(0, slice);
+
+        const dashRes = await fetch(`https://api.real-debrid.com/rest/1.0/streaming/transcode/${id}`, getOptionsRD);
+        const dashData = await dashRes.json();
+        console.log(dashData.dash);
+
+        if (dashData.dash) {
+            dash = dashData.dash;
+
+            const durationRes = await fetch(`https://api.real-debrid.com/rest/1.0/streaming/mediaInfos/${id}`, getOptionsRD);
+            const durationData = await durationRes.json();
+            console.log(durationData.duration);
+
+            duration = durationData.duration;
+            break;
+        }
+    }
+
+    if (!dash || !duration) {
+        return
+    }
 
     // Get saved playback position
     const savedPositionResult = await getPlaybackPosition(props.imdb_id, props.user.id)
