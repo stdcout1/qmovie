@@ -22,7 +22,7 @@
             pkgs = nixpkgs.legacyPackages.${system};
           in
           {
-            qmovie = import ./nextjs.nix { inherit pkgs ; };
+            qmovie = { cachePath ? null }: import ./nextjs.nix { inherit pkgs cachePath; };
             devenv-up = self.devShells.${system}.default.config.procfileScript;
             devenv-test = self.devShells.${system}.default.config.test;
           }

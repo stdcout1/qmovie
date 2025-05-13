@@ -1,4 +1,4 @@
-{ pkgs }:
+{ pkgs, cachePath ? null }:
 
 let
   pname = "qmovie"; # <same as package.json name>
@@ -6,7 +6,8 @@ let
   buildInputs = with pkgs; [
     nodejs
     nodePackages_latest.pnpm
-    pkgs.prisma-engines pkgs.nodePackages.prisma
+    pkgs.prisma-engines
+    pkgs.nodePackages.prisma
   ];
   nativeBuildInputs = buildInputs;
   npmDepsHash = "sha256-hBJ4NN942R0tQ50byWRMY2k06mei8SFWgBtGtElEIGc="; # <prefetch-npm-deps package-lock.json>
@@ -26,6 +27,14 @@ pkgs.buildNpmPackage {
     lib="$out/lib/node_modules/${pname}"
     ls -R .next || echo "no .next"
     cp -r ./.next $lib
+
+    ${if cachePath != null then ''
+      echo "Symlinking runtime cache path..."
+      ln -s ${cachePath} $lib/.next/cache
+    '' else ''
+      echo "No cachePath defined, skipping symlink."
+    ''}
+
     touch $exe
     chmod +x $exe
     echo "
