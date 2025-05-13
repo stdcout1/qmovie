@@ -8,24 +8,24 @@ import { BookmarkIcon, Star } from "lucide-react"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
-import { saveMovie } from "@/app/actions/save-actions"
-import { useSavedItems } from "./saved-item-context"
+import { saveTVShow } from "@/app/actions/save-actions"
+import { useSavedItems } from "@/app/saved-item-context"
 
-interface MovieCardProps {
+interface TVCardProps {
     poster_path: string
-    title: string
+    name: string
     id: number
     vote_average: number
     isLoggedIn?: boolean
 }
 
-export function MovieCard({ poster_path, title, id, vote_average, isLoggedIn = false }: MovieCardProps) {
+export function TVCard({ poster_path, name, id, vote_average, isLoggedIn = false }: TVCardProps) {
     const [isLoading, setIsLoading] = useState(false)
     const { toast } = useToast()
-    const { isMovieSaved, addSavedMovie, removeSavedMovie, refreshSavedItems } = useSavedItems()
+    const { isTVShowSaved, addSavedTVShow, removeSavedTVShow, refreshSavedItems } = useSavedItems()
     const url = "https://image.tmdb.org/t/p/w500"
 
-    const saved = isMovieSaved(id)
+    const saved = isTVShowSaved(id)
 
     const handleSave = async (e: React.MouseEvent) => {
         e.preventDefault()
@@ -34,7 +34,7 @@ export function MovieCard({ poster_path, title, id, vote_average, isLoggedIn = f
         if (!isLoggedIn) {
             toast({
                 title: "Login Required",
-                description: "Please log in to save movies to your watch list",
+                description: "Please log in to save TV shows to your watch list",
                 variant: "destructive",
                 duration: 3000,
             })
@@ -44,9 +44,9 @@ export function MovieCard({ poster_path, title, id, vote_average, isLoggedIn = f
         setIsLoading(true)
 
         try {
-            const result = await saveMovie({
+            const result = await saveTVShow({
                 id,
-                title,
+                name,
                 poster_path,
                 vote_average,
             })
@@ -54,14 +54,14 @@ export function MovieCard({ poster_path, title, id, vote_average, isLoggedIn = f
             if (result.success) {
                 // Update local state immediately for better UX
                 if (result.saved) {
-                    addSavedMovie({
-                        movieId: id,
-                        title,
+                    addSavedTVShow({
+                        tvShowId: id,
+                        name,
                         posterPath: poster_path,
                         voteAverage: vote_average,
                     })
                 } else {
-                    removeSavedMovie(id)
+                    removeSavedTVShow(id)
                 }
 
                 // Refresh saved items to ensure consistency with server
@@ -70,8 +70,8 @@ export function MovieCard({ poster_path, title, id, vote_average, isLoggedIn = f
                 toast({
                     title: result.saved ? "Saved to Watch Later" : "Removed from Watch Later",
                     description: result.saved
-                        ? `${title} has been added to your watch later list`
-                        : `${title} has been removed from your list`,
+                        ? `${name} has been added to your watch later list`
+                        : `${name} has been removed from your list`,
                     duration: 3000,
                 })
             } else {
@@ -96,12 +96,12 @@ export function MovieCard({ poster_path, title, id, vote_average, isLoggedIn = f
 
     return (
         <Card className="overflow-hidden group transition-all duration-200 hover:shadow-lg">
-            <Link href={`/movie/${id}`} className="block">
+            <Link href={`/tv/${id}`} className="block">
                 <CardContent className="relative p-0">
                     <div className="relative aspect-[2/3] overflow-hidden">
                         <Image
                             src={poster_path ? `${url}${poster_path}` : "/placeholder.svg"}
-                            alt={`${title} poster`}
+                            alt={`${name} poster`}
                             fill
                             className="object-cover transition-transform duration-300 group-hover:scale-105"
                             sizes="(max-width: 768px) 50vw, (max-width: 1200px) 25vw, 20vw"
@@ -114,7 +114,7 @@ export function MovieCard({ poster_path, title, id, vote_average, isLoggedIn = f
                 </CardContent>
             </Link>
             <CardFooter className="p-2 flex justify-between items-center bg-card">
-                <h3 className="font-medium text-sm truncate mr-2">{title}</h3>
+                <h3 className="font-medium text-sm truncate mr-2">{name}</h3>
                 {isLoggedIn && (
                     <Button
                         size="sm"

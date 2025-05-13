@@ -1,24 +1,24 @@
 import Link from "next/link"
 import { ArrowRightIcon } from "lucide-react"
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel"
-import { MovieCard } from "./MovieCard"
-import { validateUser } from "@/components/server/validateUser"
+import { TVCard } from "./TvCard"
+import { validateUser } from "./server/validateUser"
 
-interface Movie {
+interface TVShow {
     poster_path: string
-    title: string
+    name: string
     id: number
     vote_average: number
 }
 
-interface MovieCarouselProps {
+interface TVCarouselProps {
     title: string
     link: string
-    results: Movie[]
+    results: TVShow[]
 }
 
-export async function MovieCarousel({ title, link, results }: MovieCarouselProps) {
-    let {user} = await validateUser()
+export async function TVCarousel({ title, link, results }: TVCarouselProps) {
+    const {user} = await validateUser()
     const isLoggedIn = !!user
 
     return (
@@ -39,13 +39,13 @@ export async function MovieCarousel({ title, link, results }: MovieCarouselProps
                     className="w-full"
                 >
                     <CarouselContent className="-ml-2 md:-ml-4">
-                        {results.map((movie, index) => (
+                        {results.map((show, index) => (
                             <CarouselItem key={index} className="pl-2 md:pl-4 basis-1/2 md:basis-1/3 lg:basis-1/4 xl:basis-1/5">
-                                <MovieCard
-                                    poster_path={movie.poster_path}
-                                    title={movie.title}
-                                    id={movie.id}
-                                    vote_average={movie.vote_average}
+                                <TVCard
+                                    poster_path={show.poster_path}
+                                    name={show.name}
+                                    id={show.id}
+                                    vote_average={show.vote_average}
                                     isLoggedIn={isLoggedIn}
                                 />
                             </CarouselItem>

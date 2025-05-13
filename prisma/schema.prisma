@@ -21,6 +21,8 @@ model User {
   rdApiKey      String
   sessions      Session[]
   playbackPositions PlaybackPosition[]
+  savedMovies   SavedMovie[]
+  savedTVShows  SavedTVShow[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -49,5 +51,39 @@ model PlaybackPosition {
   @@unique([userId, videoId])
   @@index([userId])
   @@index([videoId])
+}
+
+// Saved Movies
+model SavedMovie {
+  id          String   @id @default(cuid())
+  userId      String
+  movieId     Int
+  title       String
+  posterPath  String?
+  voteAverage Float
+  createdAt   DateTime @default(now())
+
+  // Relation to User model
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, movieId])
+  @@index([userId])
+}
+
+// Saved TV Shows
+model SavedTVShow {
+  id          String   @id @default(cuid())
+  userId      String
+  tvShowId    Int
+  name        String
+  posterPath  String?
+  voteAverage Float
+  createdAt   DateTime @default(now())
+
+  // Relation to User model
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, tvShowId])
+  @@index([userId])
 }
 

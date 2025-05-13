@@ -4,6 +4,7 @@ import "./globals.css";
 import Navigation from "@/components/Navigation";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/toaster";
+import { SavedItemsProvider } from "./saved-item-context";
 
 const inter = localFont({ src: './Inter.ttf' });
 
@@ -27,7 +28,9 @@ export default async function RootLayout({
                     disableTransitionOnChange
                 >
                     <Navigation />
-                    {children}
+                    <SavedItemsProvider>
+                        {children}
+                    </SavedItemsProvider>
                     <Toaster />
                 </ThemeProvider>
             </body>
