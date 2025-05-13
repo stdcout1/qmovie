@@ -44,7 +44,7 @@ jobs:
           if ! git diff --quiet; then
             git add flake.lock
             git commit -m "Update input $INPUT_TO_UPDATE"
-            git push https://x-access-token:${{ secrets.DEPLOY_PAT }}@github.com/stdcout1/server.git HEAD:main
+            git push https://x-access-token:${{ secrets.DEPLOY_PAT }}@github.com/stdcout1/server.git HEAD:master
           else
             echo "No changes in flake.lock"
           fi
