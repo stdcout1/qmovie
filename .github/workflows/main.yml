@@ -17,7 +17,8 @@ jobs:
     steps:
       - uses: actions/checkout@v3
         with:
-          persist-credentials: false # we'll use a deploy token manually
+          repository: stdcout1/server
+          token: ${{ secrets.DEPLOY_PAT }}
 
       - uses: nixbuild/nix-quick-install-action@v30
 
@@ -43,7 +44,7 @@ jobs:
           if ! git diff --quiet; then
             git add flake.lock
             git commit -m "Update input $INPUT_TO_UPDATE"
-            git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git HEAD:main
+            git push https://x-access-token:${{ secrets.DEPLOY_PAT }}@github.com/stdcout1/server.git HEAD:main
           else
             echo "No changes in flake.lock"
           fi
