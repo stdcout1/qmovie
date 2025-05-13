@@ -1,0 +1,60 @@
+name: deploy to my server
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    env:
+      SERVER_HOST: mc.nasirk.ca
+      PROFILE: server # change to your actual profile
+      INPUT_TO_UPDATE: qmovie # <-- change this to the input you want to update
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          persist-credentials: false # we'll use a deploy token manually
+
+      - uses: nixbuild/nix-quick-install-action@v30
+
+      - uses: nix-community/cache-nix-action@v6
+        with:
+          primary-key: nix-${{ runner.os }}-${{ hashFiles('**/*.nix', '**/flake.lock') }}
+          restore-prefixes-first-match: nix-${{ runner.os }}-
+          gc-max-store-size-linux: 1G
+          purge: true
+          purge-prefixes: nix-${{ runner.os }}-
+          purge-created: 0
+          purge-primary-key: never
+
+      - name: Update flake input and push
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          nix flake update --update-input "$INPUT_TO_UPDATE"
+
+          if ! git diff --quiet; then
+            git add flake.lock
+            git commit -m "Update input $INPUT_TO_UPDATE"
+            git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git HEAD:main
+          else
+            echo "No changes in flake.lock"
+          fi
+
+      - name: Add deploy key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.DEPLOY_KEY }}" > ~/.ssh/server
+          chmod 600 ~/.ssh/server
+          ssh-keyscan -H "$SERVER_HOST" >> ~/.ssh/known_hosts
+
+      - name: Deploy with deploy-rs
+        run: |
+          nix run github:serokell/deploy-rs -- .#${PROFILE}
