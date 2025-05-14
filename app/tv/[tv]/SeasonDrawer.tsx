@@ -3,7 +3,7 @@
 import { useState } from "react"
 import Image from "next/image"
 import { Tv2, ChevronRight, Calendar, Clock } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { Button, buttonVariants } from "@/components/ui/button"
 import {
     Drawer,
     DrawerClose,
@@ -108,11 +108,9 @@ export function SeasonDrawer({ showId, showTitle, seasons, user }: SeasonDrawerP
                 handleSeasonSelect(seasons[0])
             }}
         >
-            <DrawerTrigger asChild>
-                <Button className="w-full">
-                    <Tv2 className="mr-2 h-4 w-4" />
-                    Browse Seasons & Episodes
-                </Button>
+            <DrawerTrigger className={buttonVariants()}>
+                <Tv2 className="mr-2 h-4 w-4" />
+                Browse Seasons & Episodes
             </DrawerTrigger>
             <DrawerContent className="max-h-[85vh] flex flex-col">
                 <DrawerHeader className="pb-2">
@@ -253,7 +251,7 @@ export function SeasonDrawer({ showId, showTitle, seasons, user }: SeasonDrawerP
                 </div>
 
                 <DrawerFooter className="pt-2">
-                    <TvPlayer userId = {user.id} title={showTitle} episode={selectedEpisode} rdapikey={user.apiKey} />
+                    <TvPlayer userId={user.id} title={showTitle} episode={selectedEpisode} rdapikey={user.apiKey} />
 
                     <DrawerClose asChild>
                         <Button variant="outline">Close</Button>
