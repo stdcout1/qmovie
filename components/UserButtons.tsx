@@ -1,31 +1,33 @@
-'use client'
-import React from 'react'
+"use client"
 import {
     NavigationMenu,
     NavigationMenuContent,
-    NavigationMenuIndicator,
     NavigationMenuItem,
-    NavigationMenuLink,
     NavigationMenuList,
     NavigationMenuTrigger,
-    NavigationMenuViewport,
-    navigationMenuTriggerStyle,
-    navigationMenuSelected,
 } from "@/components/ui/navigation-menu"
-import NavLink from './NavLink'
-import { Button } from './ui/button'
-import { signoutUser } from './server/signoutUser'
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Button } from "./ui/button"
+import { signoutUser } from "./server/signoutUser"
 
-function UserButtons({ ...props }) {
+function UserButtons({ user }) {
     return (
-        <NavigationMenu>
+        <NavigationMenu className="hidden md:flex">
             <NavigationMenuList>
                 <NavigationMenuItem>
-                    <NavigationMenuTrigger>{props.user.username}</NavigationMenuTrigger>
-                    <NavigationMenuContent className='space-y-3'>
-                        <NavigationMenuLink onClick={async () => await signoutUser()} className={"block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"} >
-                            Signout
-                        </NavigationMenuLink>
+                    <NavigationMenuTrigger className="flex items-center gap-2">
+                        <Avatar className="h-8 w-8">
+                            <AvatarImage src={user.image || ""} alt={user.username} />
+                            <AvatarFallback>{user.username.charAt(0).toUpperCase()}</AvatarFallback>
+                        </Avatar>
+                        <span>{user.username}</span>
+                    </NavigationMenuTrigger>
+                    <NavigationMenuContent>
+                        <div className="w-[200px] p-2">
+                            <Button variant="ghost" className="w-full justify-start" onClick={async () => await signoutUser()}>
+                                Sign Out
+                            </Button>
+                        </div>
                     </NavigationMenuContent>
                 </NavigationMenuItem>
             </NavigationMenuList>
@@ -34,3 +36,4 @@ function UserButtons({ ...props }) {
 }
 
 export default UserButtons
+
