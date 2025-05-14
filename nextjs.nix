@@ -10,7 +10,7 @@ let
     pkgs.nodePackages.prisma
   ];
   nativeBuildInputs = buildInputs;
-  npmDepsHash = "sha256-hBJ4NN942R0tQ50byWRMY2k06mei8SFWgBtGtElEIGc="; # <prefetch-npm-deps package-lock.json>
+  npmDepsHash = "sha256-DKNi6Ro6ityq4Sn9Wwo97d0qR5jPADcmm07Zna3vWLw="; # <prefetch-npm-deps package-lock.json>
 in
 pkgs.buildNpmPackage {
   inherit pname version buildInputs npmDepsHash nativeBuildInputs;
