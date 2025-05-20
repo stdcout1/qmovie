@@ -1,5 +1,7 @@
+import { validateUser } from "@/components/server/validateUser"
 import { TVCarousel } from "../components/TVCarousel"
 import { MovieCarousel } from "./MovieCarousel"
+import { ApiKeyAlert } from "@/components/apikeyalert"
 
 export default async function Home() {
     const MOVIE_API_KEY = process.env.MOVIE_API_KEY
@@ -9,6 +11,29 @@ export default async function Home() {
             accept: "application/json",
             Authorization: `Bearer ${MOVIE_API_KEY}`,
         },
+    }
+
+
+    const { user } = await validateUser()
+
+    // Flag to track API key validity
+    let isApiKeyExpired = false
+
+
+    if (user) {
+        const getOptionsRD = {
+            method: "GET",
+            headers: {
+                accept: "application/json",
+                Authorization: `Bearer ${user.apiKey}`,
+            },
+        }
+
+        const { type } = await (await fetch("https://api.real-debrid.com/rest/1.0/user", getOptionsRD)).json()
+        console.log(type)
+        if (type == "free" || !type) {
+            isApiKeyExpired = true
+        }
     }
 
     // MOVIE LISTS
@@ -87,6 +112,7 @@ export default async function Home() {
 
     return (
         <main className="container py-8 space-y-12">
+            {isApiKeyExpired && <ApiKeyAlert />}
             <h2 className="text-2xl font-bold mb-6">Movies</h2>
 
             <MovieCarousel title="Now Playing" link="/movies/now-playing" results={nowPlayingMovies.results} />
